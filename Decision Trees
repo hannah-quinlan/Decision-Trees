@@ -1,0 +1,174 @@
+library(readxl)
+train_data <- read_excel("Documents/Homework 10/TravelPlan.xlsx")
+View(train_data)
+options(scipen=999)
+
+train_data$College = as.factor(train_data$College)
+train_data$CreditCard = as.factor(train_data$CreditCard)
+
+library(rpart)
+library(rpart.plot)
+library(caret)
+
+set.seed(1)
+fulltree = rpart(TravelPlan ~., data = train_data, method = "class")
+summary(fulltree)
+prp(fulltree)
+#cp value tells you the complexity value of the tree; its typically set at 0.01 unless specified otherwise
+
+fulltree = rpart(TravelPlan ~., data = train_data, method = "class", cp=0, minsplit=2, minbucket=1, maxsurrogate=0)
+summary(fulltree)
+prp(fulltree)
+printcp(fulltree)
+
+#the minimal error tree is the lowest value of xerror
+#best pruned tree is adding the xerror and the xstd
+#minimal error could be in the middle
+#best pruned tree is the lowest of xerror and xstd
+#these are simplified and overfitting
+0.59494+0.075902
+prunedtree = prune(fulltree, cp=0.025)
+#right and left son show how many observations go to each
+?prp
+prp(fulltree, type=1)
+prp(fulltree, type=1,extra=1,under=TRUE)
+#minimal error tree is the lowest xerror tree
+#best pruned tree is adding xerror and xstd tree, if you add them and go up and see if there is a tree that has a classification error lower or equal to the minimal error tree
+#if the best pruned tree is in the middle and not the last tree then use that cp value
+train_data <- read_excel("Documents/Homework 10/TravelPlan.xlsx")
+View(train_data)
+options(scipen=999)
+train_data$College = as.factor(train_data$College)
+train_data$CreditCard = as.factor(train_data$CreditCard)
+library(rpart)
+library(rpart.plot)
+library(caret)
+set.seed(1)
+fulltree = rpart(TravelPlan ~., data = train_data, method = "class")
+fulltree = rpart(TravelPlan ~., data = train_data, method = "class", cp=0, minsplit=2, minbucket=1, maxsurrogate=0)
+summary(fulltree)
+prp(fulltree, type=1,extra=1,under=TRUE)
+train_data$TravelPlan = as.factor(train_data$TravelPlan)
+fulltree = rpart(TravelPlan ~., data = train_data, method = "class")
+fulltree = rpart(TravelPlan ~., data = train_data, method = "class", cp=0, minsplit=2, minbucket=1, maxsurrogate=0)
+summary(fulltree)
+prp(fulltree)
+prunedtree = prune(fulltree, cp=0.008)
+summary(prunedtree)
+prp(prunedtree, type=1,extra=1,under=TRUE)
+predict(prunedtree)
+#probabilities for no travel and yes travel above
+predict_prob = predict(prunedtree,type = "prob")
+predict_class = predict(prunedtree, type = "class")
+predict_class
+predict_class = predict(prunedtree, type = "vector")
+predict_prob_min = predict(fulltree,type = "prob")
+predict_class_min = predict(fulltree, type = "vector")
+predict_class_min
+predict_class_min = predict(fulltree, type = "class")
+predict_class_min
+predict(fulltree)
+predict_prob_min
+prunedtree = prune(fulltree, cp=0.0)
+prunedtree = prune(fulltree, cp=0.008)
+mintree = prune(fulltree, cp=0.00)
+predict(mintree)
+predict_prob_min = predict(mintree,type = "prob")
+predict_class_min = predict(mintree, type = "class")
+predict_class_min
+predict_prob_min
+predict_class_min = predict(prunedtree, type = "class")
+predict_class_min
+predict_class_min = predict(mintree, type = "class")
+predict_class_min
+library(ROCR)
+install.packages("ROCR")
+library(ROCR)
+view(predict_prob)
+View(predict_prob)
+pred=prediction(predict_prob[,2],train_data$TravelPlan,label.ordering = c("No","Yes"))
+pred=prediction(predict_prob[,2],train_data$TravelPlan,label.ordering = c("0","1"))
+roc=performance(pred.measure="tpr",x.measure="fpr")
+roc=performance(pred,measure="tpr",x.measure="fpr")
+plot(roc)
+abline(a=0,b=1)
+#diagonal linepredict(prunedtree, test_data, type="prob")
+predict(fulltree, test_data, type="prob")
+accuracy
+summary(accuracy)
+summary(prunedtree)
+View(accuracy)
+accuracy(x.values)
+summary(accuracy, x.values)
+# Compute the accuracy of the pruned tree
+test_data$pred <- predict(prunedtree, test_data, type = "class")
+accuracy <- mean(test_data$pred == test_data$left)
+# Compute the accuracy of the pruned tree
+test_data$pred <- predict(prunedtree, test_data, type = "class")
+accuracy <- mean(test_data$pred == test_data$TravelPlan)
+# Compute the accuracy of the pruned tree
+test_data$pred <- predict(prunedtree, test_data, type = "class")
+accuracy <- mean(test_data$pred)
+accuracy_postprun <- mean(train_data$pred == train_data$TravelPlan)
+accuracy = performance(pred, measure = "acc")
+mean(accuracy)
+@operator to print/extract specific values (e.g., auc@y.values[[1]])
+auc@y.values[[1]]
+?caret
+?confusionmatrix
+??caret
+??confusionmatrix
+mintree
+summary(mintree)
+summmary(prunedtree)
+summary(prunedtree)
+1-0.9787635
+accuracy@y.values[[1]]
+=mean(accuracy)
+mean(accuracy)
+mean(accuracy
+)
+plot(accuracy)
+plot(accuracy)
+accuracy@y.values[[1]]
+#add gridlines to better see cutoff values
+grid(nx = NULL, ny = nx, col = "lightgray", lty = "dotted",     lwd = par("lwd"), equilogs = TRUE)
+#add gridlines to better see cutoff values
+grid(nx = NULL, ny = nx, col = "lightgray", lty = "dotted",     lwd = par("lwd"), equilogs = TRUE)
+#add gridlines to better see cutoff values
+grid(ny = nx, col = "lightgray", lty = "dotted",     lwd = par("lwd"), equilogs = TRUE)
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = 1)
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = "1")
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = "2")
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = 2)
+predict_class = predict(prunedtree, type = "class")
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = 2)
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = "2")
+library(caret)
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = "2")
+install.packages("e1071")
+library(e1071)
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = "2")
+conf_mat = confusionMatrix(predict_class,train_data$TravelPlan,positive = "1")
+conf_mat
+1=0.955
+1-0.955
+
+#generate data
+rocdata=data.frame(fpr=roc@x.values[[1]],tpr=roc@y.values[[1]],cutoff=roc@alpha.values[[1]])
+auc=performance(pred,measure="auc")
+auc
+auc
+accuracy = performance(pred, measure = "acc")
+accuracy@y.values[[1]]
+lift = performance(pred,measure="lift",x.measure="rpp")
+plot(lift)
+library(readxl)
+test_data <- read_excel("Documents/Homework 10/TravelPlan.xlsx",
+sheet = "Travel_Plan_Score")
+View(test_data)
+test_data$College = as.factor(test_data$College)
+test_data$CreditCard = as.factor(test_data$CreditCard)
+predict(prunedtree, test_data, type="class")
+predict(fulltree, test_data, type="class")
+
