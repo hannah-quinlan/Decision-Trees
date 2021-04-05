@@ -1,0 +1,76 @@
+options(scipen=999)
+
+train_data$Type = as.factor(train_data$Type)
+train_data$Category = as.factor(train_data$Category)
+train_data$Paid = as.factor(train_data$Paid)
+train_data$Post
+
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(ROCR)
+library(e1071)
+
+attach(train_data)
+set.seed(123)
+
+#Create a default tree
+tree = rpart(`Lifetime Engaged Users`~Category+Type+`Post Weekday`+Paid+`Page total likes`,data=train_data,method = "anova")
+summary(tree)
+prp(tree,type = 1, extra = 1, under=TRUE)
+prp(tree,type = 1, extra = 1, under=TRUE,digits = -1)
+
+#See predictions and predictive performance (predictions are averages)
+library(forecast)
+predictions = predict(tree)
+accuracy(predictions,`Lifetime Engaged Users`)
+
+#Create full tree
+fulltree = rpart(`Lifetime Engaged Users`~Category+Type+`Post Weekday`+Paid+`Page total likes`,data=train_data,method = "anova",cp=0,minbucket=1,minsplit=2)
+summary(fulltree)
+prp(fulltree,type = 1, extra = 1, under=TRUE,digits = -1)
+printcp(fulltree)
+summary(fulltree)
+
+#Get min cp from full tree programatically
+printcp(fulltree)
+cpdata = data.frame(printcp(fulltree))
+min(cpdata$xerror)
+cpdata[order(cpdata$xerror),]
+cpdata[order(cpdata$xerror),][1:5,]
+mincp = cpdata[order(cpdata$xerror),][1,1]
+mincp
+
+ordereddata= cpdata[order(cpdata$xerror),]
+threshold = ordereddata[1,4]+ordereddata[1,5]
+threshold
+
+bestcandidate = subset(cpdata, xerror <= threshold)
+View(bestcandidate)
+sortedcandidate = bestcandidate[order(bestcandidate$nsplit),]
+sortedcandidate
+bestcp = bestcandidate[1,1]
+
+#Create pruned tree
+prunedtree = prune(fulltree, cp = bestcp*1.01)
+summary(prunedtree)
+prp(prunedtree, type=1, extra=1, under=TRUE, digits = -1)
+
+#compare prediction accuracy for each tree
+predictions.tree = predict(tree)
+predictions.fulltree = predict(fulltree)
+predictions.prunedtree = predict(prunedtree)
+
+accuracy(predictions.tree,train_data$`Lifetime Engaged Users`)
+accuracy(predictions.fulltree,train_data$`Lifetime Engaged Users`)
+accuracy(predictions.prunedtree,train_data$`Lifetime Engaged Users`)
+
+#Create simple tree
+simpletree = rpart(`Lifetime Engaged Users`~Type,data=train_data)
+summary(simpletree)
+prp(simpletree, type=1, extra=1, under=TRUE,digits=-1)
+
+#See prediction accuracy
+predictions.simpletree = predict(simpletree)
+accuracy(predictions.simpletree,train_data$`Lifetime Engaged Users`)
+
