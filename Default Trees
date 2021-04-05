@@ -1,3 +1,7 @@
+library(readxl)
+train_data <- read_excel("Documents/FacebookData.xlsx")
+View(train_data)
+
 options(scipen=999)
 
 train_data$Type = as.factor(train_data$Type)
