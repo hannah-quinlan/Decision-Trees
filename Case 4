@@ -1,0 +1,148 @@
+library(readxl)
+EmployeeAttrition_data <- read_excel("Documents/BAN840/Case Study 3/EmployeeAttrition_data.xlsx")
+View(EmployeeAttrition_data)
+
+#Change some variables to factors
+EmployeeAttrition_data$BusinessTravel=as.factor(EmployeeAttrition_data$BusinessTravel)
+EmployeeAttrition_data$Department=as.factor(EmployeeAttrition_data$Department)
+EmployeeAttrition_data$Education=as.factor(EmployeeAttrition_data$Education)
+EmployeeAttrition_data$EducationField=as.factor(EmployeeAttrition_data$EducationField)
+EmployeeAttrition_data$EnvironmentSatisfaction=as.factor(EmployeeAttrition_data$EnvironmentSatisfaction)
+EmployeeAttrition_data$Gender=as.factor(EmployeeAttrition_data$Gender)
+EmployeeAttrition_data$JobInvolvement=as.factor(EmployeeAttrition_data$JobInvolvement)
+EmployeeAttrition_data$JobLevel=as.factor(EmployeeAttrition_data$JobLevel)
+EmployeeAttrition_data$JobRole=as.factor(EmployeeAttrition_data$JobRole)
+EmployeeAttrition_data$JobSatisfaction=as.factor(EmployeeAttrition_data$JobSatisfaction)
+EmployeeAttrition_data$MaritalStatus=as.factor(EmployeeAttrition_data$MaritalStatus)
+EmployeeAttrition_data$OverTime=as.factor(EmployeeAttrition_data$OverTime)
+EmployeeAttrition_data$StockOptionLevel=as.factor(EmployeeAttrition_data$StockOptionLevel)
+EmployeeAttrition_data$RelationshipSatisfaction=as.factor(EmployeeAttrition_data$RelationshipSatisfaction)
+EmployeeAttrition_data$WorkLifeBalance=as.factor(EmployeeAttrition_data$WorkLifeBalance)
+EmployeeAttrition_data$PerformanceRating= as.factor(EmployeeAttrition_data$PerformanceRating)
+EmployeeAttrition_data$Attrition = as.factor(EmployeeAttrition_data$Attrition)
+
+#install libraries
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(ROCR)
+library(e1071)
+
+#set seed
+set.seed(123)
+
+#create training and test data with 80/20 split
+TrainPartition <- createDataPartition(EmployeeAttrition_data$Attrition, times = 1, p = 0.8, list = FALSE)
+TrainData <- EmployeeAttrition_data[TrainPartition,]
+TestData <- EmployeeAttrition_data[-TrainPartition,]
+
+#create full tree
+fulltree = rpart(Attrition ~., data = TrainData, method = "class", cp=0, minsplit=2, minbucket=1, maxsurrogate=0)
+summary(fulltree)
+prp(fulltree,type = 1, extra = 1, under=TRUE,digits = -1)
+printcp(fulltree)
+
+#Get min cp from full tree programatically
+printcp(fulltree)
+cpdata = data.frame(printcp(fulltree))
+min(cpdata$xerror)
+cpdata[order(cpdata$xerror),]
+cpdata[order(cpdata$xerror),][1:5,]
+mincp = cpdata[order(cpdata$xerror),][1,1]
+mincp
+
+ordereddata= cpdata[order(cpdata$xerror),]
+threshold = ordereddata[1,4]+ordereddata[1,5]
+threshold
+
+bestcandidate = subset(cpdata, xerror <= threshold)
+View(bestcandidate)
+sortedcandidate = bestcandidate[order(bestcandidate$nsplit),]
+sortedcandidate
+bestcp = bestcandidate[1,1]
+
+#Create pruned tree
+prunedtree = prune(fulltree, cp = bestcp*1.01)
+summary(prunedtree)
+prp(prunedtree, type=1, extra=1, under=TRUE, digits = -1)
+predict(prunedtree)
+
+#probabilities for train data
+trainpredict_prob = predict(prunedtree,type = "prob")
+View(trainpredict_prob)
+
+#train data predicted classes by either vector or class
+trainpredict_class = predict(prunedtree, type = "vector")
+trainpredict_class = predict(prunedtree, type = "class")
+trainpredict_class
+trainpred=prediction(trainpredict_prob[,2],TrainData$Attrition,label.ordering = c("No","Yes"))
+
+#predicted class for test data
+predict_class = predict(prunedtree, TestData, type="class")
+
+#probabilities for test data
+predict_prob = predict(prunedtree, TestData, type="prob")
+
+#Predictions for testdata using pruned tree
+pred=prediction(predict_prob[,2],TestData$Attrition,label.ordering = c("No","Yes"))
+
+#Look at ROC Curve
+roc=performance(pred,measure="tpr",x.measure="fpr")
+plot(roc)
+
+#diagonal line
+abline(a=0,b=1)
+
+#generate data
+rocdata=data.frame(fpr=roc@x.values[[1]],tpr=roc@y.values[[1]],cutoff=roc@alpha.values[[1]])
+
+#Look at area under curve
+auc=performance(pred,measure="auc")
+auc
+
+#Plot accuracy curve
+accuracy = performance(pred, measure = "acc")
+plot(accuracy)
+
+#Plot lift curve
+lift = performance(pred,measure="lift",x.measure="rpp")
+plot(lift)
+
+#confusion matrix
+conf_mat = confusionMatrix(predict_class,TestData$Attrition,positive = "Yes")
+conf_mat
+
+
+
+#Compare to log regression
+
+#change attrition
+TrainData$Attrition <- as.factor(TrainData$Attrition)
+TrainData$Attrition <- as.numeric(TrainData$Attrition)
+TrainData$Attrition <- as.numeric(TrainData$Attrition)-1
+
+#Model
+logmodel <- glm(TrainData$Attrition~., data = TrainData)
+summary(logmodel)
+
+stepmodel <- step(logmodel, direct = "backward")
+summary(stepmodel)
+
+#Predicted Probabilities
+pred_prob_log <- predict(stepmodel, type = "response")
+pred_prob_log
+
+#ROC
+library(ROCR)
+pred_log <- prediction(pred_prob_log, EmployeeAttrition_data$Attrition, label.ordering = c("0", "1"))
+roc_log <- performance(pred_log, measure = "tpr", x.measure = "fpr")
+plot(roc)
+abline(a=0, b=1)roc
+
+#area under ROC curve
+auc <- performance(pred_log, measure = "auc")
+auc
+
+#Predict Class
+pred_class_log <- ifelse(pred_prob_log >= 0.5, 1, 0)
+pred_class_log
