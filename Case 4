@@ -116,28 +116,42 @@ conf_mat
 
 #Compare to log regression
 
-#change attrition
-TrainData$Attrition <- as.factor(TrainData$Attrition)
-TrainData$Attrition <- as.numeric(TrainData$Attrition)
-TrainData$Attrition <- as.numeric(TrainData$Attrition)-1
-
-#Model
-logmodel <- glm(TrainData$Attrition~., data = TrainData)
+#develop logistic regression model using train data
+logmodel <- glm(EmployeeAttritionTrain$Attrition~., data = EmployeeAttritionTrain, family = "binomial")
 summary(logmodel)
-
 stepmodel <- step(logmodel, direct = "backward")
 summary(stepmodel)
 
-#Predicted Probabilities
-pred_prob_log <- predict(stepmodel, type = "response")
-pred_prob_log
+#Predicted Probabilities and class
+pred_probLM <- predict(stepmodel, EmployeeAttritionTest ,type = "response")
+View(pred_probLM)
+
+pred_classLM <- ifelse(pred_probLM >= 0.5, "Yes", "No")
+pred_classLM <- factor(pred_classLM)
+pred_classLM
 
 #ROC
-library(ROCR)
-pred_log <- prediction(pred_prob_log, EmployeeAttrition_data$Attrition, label.ordering = c("0", "1"))
-roc_log <- performance(pred_log, measure = "tpr", x.measure = "fpr")
-plot(roc)
-abline(a=0, b=1)roc
+pred_LM <- prediction(pred_probLM, EmployeeAttritionTest$Attrition, label.ordering = c("No","Yes"))
+roc_LM <- performance(pred_LM, measure = "tpr", x.measure = "fpr")
+plot(roc_LM, main = "ROC Logistic Regression", xlab = "False Positive Rate (1-Specificity)", ylab = "True Positive Rate (Sensitivity)")
+abline(a=0, b=1, col="blue")
+roc_LM@alpha.values[[1]]
+
+roc_LM_data = data.frame(fpr = roc_LM@x.values[[1]], tpr = roc_LM@y.values[[1]], cutoff = roc_LM@alpha.values[[1]])
+View(roc_LM_data)
+
+#Area Under ROC Curve
+auc_LM <- performance(pred_LM, measure = "auc")
+auc_LM@y.values[[1]]
+
+#Lift Chart
+lift_LM = performance(pred_LM, measure = "lift", x.measure = "rpp")
+plot(lift_LM, main = "Lift Plot Logistic Regression")
+
+#confusion matrix
+library(caret)
+conf_mat_LM = confusionMatrix(pred_classLM,EmployeeAttritionTest$Attrition,positive = "Yes")
+conf_mat_LM
 
 #area under ROC curve
 auc <- performance(pred_log, measure = "auc")
